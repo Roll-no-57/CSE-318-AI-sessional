@@ -1,0 +1,68 @@
+1.
+
+Runs
+
+- for each trainPct - 1 to 99
+	- for each (strategy, metric)
+		- perform 20 runs
+		
+So, there will be 2*99*20 runs
+
+CSV
+
+- One CSV containing the info about all runs
+	- for each runs
+	- add a row containing columns
+		- trainPct[1-99], strategy[BEST or TOP_THREE], metric[INFORMATION_GAIN or GINI_IMPURITY], accuracyPct, treeConstructionTime[in millis], nodeCount, treeDepth, buying, maint, doors, persons, lug_boot, safety
+		- the last 6 columns here are the avgDepths of attributes, they are got in the same order as arraylist
+
+2.
+
+Runs
+
+- for one single trainPct = 80
+	- for each (strategy, metric)
+		- perform 20 runs
+		
+So, there will be 2*20 runs
+
+CSV
+
+- One CSV containing the info about all runs
+	- for each runs
+		- for each datapoint
+			- add a row with columns
+			- trainPct, strategy[BEST or TOP_THREE], metric[INFORMATION_GAIN or GINI_IMPURITY], run, ...(names of attributes of datapoints), actual label in datapoint, classified label
+
+plots task
+
+there are two csvs
+
+- results dir
+	- decision_tree_results.csv -> this has for trainPct 1 to 99
+	- example row
+		trainPct,selectionStrategy,evaluationMetric,accuracyPct,constructionTime,nodeCount,treeDepth,buyingDepth,maintDepth,doorsDepth,personsDepth,lugBootDepth,safetyDepth
+		1,BEST,INFORMATION_GAIN,70.3682,8.1262,15,3,1.00,2.00,-1.00,0.00,-1.00,1.00
+	- decision_tree_results_details.csv -> this has for trainPct 80
+	- example row
+		trainPct,selectionStrategy,evaluationMetric,run,buying,maint,doors,persons,lug_boot,safety,actualLabel,predictedLabel
+		80,BEST,INFORMATION_GAIN,1,vhigh,low,4,more,med,low,unacc,unacc
+
+Plots to make:
+
+for this, use the all-train-pct csv
+- for each (strategy, metric)
+	- one plot with the 4 subplots as
+	- trainPct vs accuracy
+	- trainPct vs treeConstructionTime
+	- trainPct vs tree nodeCount
+	- trainPct vs tree depth
+	
+for this use-80-20 csv
+- for each (strategy, metric)
+	- for trainPct 80
+		- attribute depth boxplot
+		- box plot of performance over 20 runs for each methods
+		- confusion matrices among the 4 output labels
+		- average error rate per class
+- 

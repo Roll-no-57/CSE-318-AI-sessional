@@ -34,7 +34,7 @@ public class Grasp {
         }
     }
 
-    public GraspResult calculateGrasp(Graph graph, double alpha, int numIterations, int randomizedIterations) {
+    public GraspResult calculateGrasp(Graph graph, double alpha, int numIterations, int randomizedIterations, int localSearchK, int localSearchDepth) {
         // Randomized Heuristic
         double randomizedCutValue = randomized.calculateRandomizedHeuristic(graph, randomizedIterations);
 
@@ -43,26 +43,18 @@ public class Grasp {
 
         // Semi-Greedy Heuristic
         SemiGreedyResult semiGreedyResult = semiGreedy.calculateSemiGreedy(graph, alpha);
-        Set<Integer> partitionX = semiGreedyResult.partitionX;
-        Set<Integer> partitionY = semiGreedyResult.partitionY;
         double semiGreedyCutValue = semiGreedyResult.cutValue;
 
-        // Local Search (using Semi-Greedy partitions)
-        LocalSearch.LocalSearchResult localSearchResult = localSearch.localSearch(graph, partitionX, partitionY);
-        double localSearchCutValue = localSearchResult.cutValue;
+        // Local Search (k initial solutions)
+        LocalSearch.LocalSearchResult localSearchResult = localSearch.localSearch(graph, localSearchK, localSearchDepth);
+        double localSearchCutValue = localSearchResult.averageCutValue;
         int localSearchIterations = localSearchResult.iterations;
 
         // GRASP
-        /**
-         * Semi-Greedy heuristic introduces randomness (via the Restricted Candidate List and the alpha parameter), allowing different solutions in each iteration.
-         * The Greedy heuristic, on the other hand, is deterministic. Given the same graph, it always produces the same partitions and
-         * cut value because it selects the vertex with the maximum contribution to the cut at each step without randomness.
-         * Iterating the Greedy heuristic multiple times would yield identical results, making iteration unnecessary.
-         */
         double bestCutValue = Double.MIN_VALUE;
         for (int i = 0; i < numIterations; i++) {
             SemiGreedyResult iterResult = semiGreedy.calculateSemiGreedy(graph, alpha);
-            double currentCutValue = localSearch.localSearch(graph, iterResult.partitionX, iterResult.partitionY).cutValue;
+            double currentCutValue = localSearch.localSearchSingle(graph, iterResult.partitionX, iterResult.partitionY, localSearchDepth).cutValue;
             if (currentCutValue > bestCutValue) {
                 bestCutValue = currentCutValue;
             }

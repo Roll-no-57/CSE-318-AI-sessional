@@ -2,27 +2,60 @@ import java.util.*;
 
 public class LocalSearch {
     public static class LocalSearchResult {
-        public double cutValue;
+        public double averageCutValue;
         public int iterations;
-        public LocalSearchResult(double cutValue, int iterations) {
+
+        public LocalSearchResult(double averageCutValue, int iterations) {
+            this.averageCutValue = averageCutValue;
+            this.iterations = iterations;
+        }
+    }
+
+    public LocalSearchResult localSearch(Graph graph, int k, int maxDepth) {
+        Random random = new Random();
+        double totalCutValue = 0.0;
+        double totalIterations = 0.0;
+
+        // Run Local Search k times with different random initial solutions
+        for (int i = 0; i < k; i++) {
+            // Generate random initial solution
+            Set<Integer> partitionX = new HashSet<>();
+            Set<Integer> partitionY = new HashSet<>();
+            for (int v = 1; v <= graph.numVertices; v++) {
+                if (random.nextBoolean()) {
+                    partitionX.add(v);
+                } else {
+                    partitionY.add(v);
+                }
+            }
+
+            // Run Local Search with maxDepth
+            SingleResult result = localSearchSingle(graph, partitionX, partitionY, maxDepth);
+            totalCutValue += result.cutValue;
+            totalIterations += result.iterations;
+        }
+
+        // Compute averages
+        double averageCutValue = k > 0 ? totalCutValue / k : 0.0;
+        int averageIterations = k > 0 ? (int) Math.round(totalIterations/k ) : 0;
+        return new LocalSearchResult(averageCutValue, averageIterations);
+    }
+
+    public static class SingleResult {
+        double cutValue;
+        int iterations;
+
+        SingleResult(double cutValue, int iterations) {
             this.cutValue = cutValue;
             this.iterations = iterations;
         }
     }
-    /**
-     * Performs local search starting from an initial solution (partitionX and partitionY).
-     * Moves vertices between partitions to maximize the cut value until no improvement is possible.
-     * @param graph The input graph
-     * @param initialPartitionX Initial set of vertices in partition X
-     * @param initialPartitionY Initial set of vertices in partition Y
-     * @return The final cut value after local search
-     */
-    public LocalSearchResult localSearch(Graph graph, Set<Integer> initialPartitionX, Set<Integer> initialPartitionY) {
+
+    public SingleResult localSearchSingle(Graph graph, Set<Integer> initialPartitionX, Set<Integer> initialPartitionY, int maxDepth) {
         Set<Integer> partitionX = new HashSet<>(initialPartitionX);
         Set<Integer> partitionY = new HashSet<>(initialPartitionY);
-
+        int depth = 0;
         boolean improved;
-        int iterations = 0;
 
         do {
             improved = false;
@@ -30,19 +63,9 @@ public class LocalSearch {
             double bestDelta = 0;
             boolean moveToX = false;
 
-            // Evaluate all possible moves
             for (int v = 1; v <= graph.numVertices; v++) {
                 partitionCut cut = graph.getCutContribution(v, partitionX, partitionY);
-                double delta;
-
-                if (partitionX.contains(v)) {
-                    // Move v from X to Y: delta = sigma_Y(v) - sigma_X(v)
-                    delta = cut.sigmaY - cut.sigmaX;
-                } else {
-                    // Move v from Y to X: delta = sigma_X(v) - sigma_Y(v)
-                    delta = cut.sigmaX - cut.sigmaY;
-                }
-
+                double delta = partitionX.contains(v) ? cut.sigmaY - cut.sigmaX : cut.sigmaX - cut.sigmaY;
                 if (delta > bestDelta) {
                     bestDelta = delta;
                     bestVertex = v;
@@ -51,8 +74,7 @@ public class LocalSearch {
                 }
             }
 
-            // Perform the best move
-            if (improved) {
+            if (improved && depth < maxDepth) {
                 if (moveToX) {
                     partitionY.remove(bestVertex);
                     partitionX.add(bestVertex);
@@ -60,11 +82,13 @@ public class LocalSearch {
                     partitionX.remove(bestVertex);
                     partitionY.add(bestVertex);
                 }
-                iterations++;
-            }
-        } while (improved);
+                depth++;
 
-        // Calculate final cut value
-        return new LocalSearchResult(graph.totalCutValue(partitionX,partitionY),iterations);
+            } else {
+                break;
+            }
+        } while (improved && depth < maxDepth);
+
+        return new SingleResult(graph.totalCutValue(partitionX, partitionY), depth);
     }
 }

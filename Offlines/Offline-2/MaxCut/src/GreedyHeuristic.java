@@ -1,138 +1,76 @@
-
 import java.util.*;
 
 public class GreedyHeuristic {
     public double calculateGreedyHeuristic(Graph graph) {
         Set<Integer> partitionX = new HashSet<>();
         Set<Integer> partitionY = new HashSet<>();
-        Set<Integer> remainingVertices = new HashSet<>();
+        Set<Integer> unassignedVertices = new HashSet<>();
 
-        // Initialize remainingVertices with all vertices
+        // Initialize unassignedVertices with all vertices
         for (int v = 1; v <= graph.numVertices; v++) {
-            remainingVertices.add(v);
+            unassignedVertices.add(v);
         }
 
-        // Step-1: Select the initial edge
+        // Find edge with maximum weight
         if (graph.maxEdge == null) graph.findCriticalEdges();
-        Edge initialEdge = graph.maxEdge;
+        Edge maxEdge = graph.maxEdge;
 
-
-        if (initialEdge == null || initialEdge.from == 0) {
-            // Handle empty graph: arbitrarily assign vertices
-            if (!remainingVertices.isEmpty()) {
-                int v = remainingVertices.iterator().next();
+        // Handle edge cases (no edges or empty graph)
+        if (maxEdge == null || maxEdge.from == 0) {
+            // Arbitrarily assign vertices if no valid edge exists
+            if (!unassignedVertices.isEmpty()) {
+                int v = unassignedVertices.iterator().next();
                 partitionX.add(v);
-                remainingVertices.remove(v);
+                unassignedVertices.remove(v);
             }
-            while (!remainingVertices.isEmpty()) {
-                int v = remainingVertices.iterator().next();
+            while (!unassignedVertices.isEmpty()) {
+                int v = unassignedVertices.iterator().next();
                 partitionY.add(v);
-                remainingVertices.remove(v);
+                unassignedVertices.remove(v);
             }
             return graph.totalCutValue(partitionX, partitionY);
         }
 
-        // Insert initial edge's vertices
-        partitionX.add(initialEdge.from);
-        partitionY.add(initialEdge.to);
-        remainingVertices.remove(initialEdge.from);
-        remainingVertices.remove(initialEdge.to);
+        // Assign vertices of max edge to partitions
+        partitionX.add(maxEdge.from);
+        partitionY.add(maxEdge.to);
+        unassignedVertices.remove(maxEdge.from);
+        unassignedVertices.remove(maxEdge.to);
 
-        // Step-2: Assign remaining vertices
-        while (!remainingVertices.isEmpty()) {
-            Map<Integer, partitionCut> cutValues = new HashMap<>();
-            int maxVertex = -1;
-            double maxVertexWeight = Double.MIN_VALUE;
+        // Process remaining vertices one by one
+        while (!unassignedVertices.isEmpty()) {
+            int nextVertex = unassignedVertices.iterator().next();
+            unassignedVertices.remove(nextVertex);
 
-            for (int v : remainingVertices) {
-                partitionCut cut = graph.getCutContribution(v, partitionX, partitionY);
-                cutValues.put(v, cut);
-                double weight = Math.max(cut.sigmaX, cut.sigmaY);
-                if (weight > maxVertexWeight) {
-                    maxVertex = v;
-                    maxVertexWeight = weight;
+            // Calculate contribution to cut if placed in X or Y
+            double wX = 0; // weight if placed in X (sum of weights to Y)
+            double wY = 0; // weight if placed in Y (sum of weights to X)
+
+            // Calculate wX (sum of weights between nextVertex and vertices in Y)
+            for (int y : partitionY) {
+                Integer weight = graph.adjList.get(nextVertex).get(y);
+                if (weight != null) {
+                    wX += weight;
                 }
             }
 
-            // Handle case where no valid vertex is found
-            if (maxVertex == -1) {
-                // Arbitrarily assign to partitionY if no contribution
-                maxVertex = remainingVertices.iterator().next();
-                partitionY.add(maxVertex);
-                remainingVertices.remove(maxVertex);
-                continue;
+            // Calculate wY (sum of weights between nextVertex and vertices in X)
+            for (int x : partitionX) {
+                Integer weight = graph.adjList.get(nextVertex).get(x);
+                if (weight != null) {
+                    wY += weight;
+                }
             }
 
-            // Add chosen vertex to partition X or Y
-            partitionCut chosenCut = cutValues.get(maxVertex);
-            if (chosenCut.sigmaX >= chosenCut.sigmaY) {
-                partitionX.add(maxVertex);
+            // Assign vertex to the partition that maximizes the cut
+            if (wX > wY) {
+                partitionX.add(nextVertex);
             } else {
-                partitionY.add(maxVertex);
+                partitionY.add(nextVertex);
             }
-
-            remainingVertices.remove(maxVertex);
         }
 
         // Calculate and return the final cut value
         return graph.totalCutValue(partitionX, partitionY);
     }
 }
-
-
-
-
-// ================================================ A different implementation ===========================================================================
-//import java.util.*;
-//
-//public class GreedyHeuristic {
-//    public double calculateGreedyHeuristic(Graph graph) {
-//        // Initialize partitions
-//        boolean[] partitionX = new boolean[graph.numVertices + 1];
-//        boolean[] partitionY = new boolean[graph.numVertices + 1];
-//        Arrays.fill(partitionX, false);
-//        Arrays.fill(partitionY, false);
-//
-//        // Step-1: Select the initial edge with maximum weight
-//        if (graph.maxEdge == null) {
-//            graph.findCriticalEdges();
-//        }
-//        Edge maxWeightEdge = graph.maxEdge;
-//
-//        // Handle empty graph or null maxEdge
-//        if (maxWeightEdge == null) {
-//            // Arbitrarily assign vertices: first to X, rest to Y
-//            if (graph.numVertices >= 1) {
-//                partitionX[1] = true;
-//                for (int i = 2; i <= graph.numVertices; i++) {
-//                    partitionY[i] = true;
-//                }
-//            }
-//            return graph.cutWeight(partitionX); // Should be 0 for empty graph
-//        }
-//
-//        // Place one vertex to each partition
-//        partitionX[maxWeightEdge.from] = true;
-//        partitionY[maxWeightEdge.to] = true;
-//
-//        // Step-2: Assign remaining vertices based on contribution
-//        for (int z = 1; z <= graph.numVertices; z++) {
-//            if (!partitionX[z] && !partitionY[z]) {
-//                partitionCut cut = graph.getCutContribution(z, new HashSet<>(Set.of(maxWeightEdge.from)), new HashSet<>(Set.of(maxWeightEdge.to)));
-//                double weightX = cut.sigmaX; // Contribution to partitionY (edges to Y)
-//                double weightY = cut.sigmaY; // Contribution to partitionX (edges to X)
-//
-//                if (weightX > weightY) {
-//                    partitionX[z] = true;
-//                } else {
-//                    partitionY[z] = true; // Assign to Y if equal or greater
-//                }
-//            }
-//        }
-//
-//        // Calculate and return the cut value
-//        return graph.cutWeight(partitionX);
-//    }
-//}
-
-

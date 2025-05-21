@@ -6,9 +6,9 @@ public class MaxCutSolver {
         // Parameters
         double alpha = 0.5;
         int randomizedIterations = 100;
-        int localSearchK = 2; // Number of LS initial solutions
+        int localSearchK = 5; // Number of LS initial solutions
 //        long seed = 42;
-        String studentId = "2105057_2"; // Replace with your student ID
+        String studentId = "2105057_3"; // Replace with your student ID
         String csvFile = studentId + ".csv";
 
         // Known best solutions
@@ -41,8 +41,8 @@ public class MaxCutSolver {
                 Grasp grasp = new Grasp();
 
                 // Adjust parameters for large graphs
-                int graspIterations = graph.numVertices > 1000 || graph.numEdges > 20000 ? 2 : 10;
-                int localSearchDepth = graph.numVertices > 1000 || graph.numEdges > 20000 ? 2 : 10;
+                int graspIterations = graph.numVertices > 1000 || graph.numEdges > 20000 ? 2 : 50;
+                int localSearchDepth = graph.numVertices > 1000 || graph.numEdges > 20000 ? 2 : 100;
 
                 // Run algorithms
                 Grasp.GraspResult result = grasp.calculateGrasp(graph, alpha, graspIterations, randomizedIterations, localSearchK, localSearchDepth);
